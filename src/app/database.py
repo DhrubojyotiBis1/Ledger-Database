@@ -7,6 +7,11 @@ def operate(transaction):
         document = transaction['added']
         document['_id'] = id
         collection.insert_one(document)
+    elif not transaction['added'] :
+        #DELETED
+        document = transaction['removed']
+        document['_id'] = id
+        collection.delete_one(document)
     else:
         #MODIFIED
         collection.update_one({'_id': id}, {"$set": transaction['added']})
