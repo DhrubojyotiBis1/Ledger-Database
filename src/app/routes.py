@@ -1,5 +1,5 @@
 from app import app, blockchain, collection
-from app.database import operate
+from app.database import operate, drop_all_documents, select
 from  flask import request
 
 @app.route('/connect_node', methods = ['POST'])
@@ -10,7 +10,7 @@ def connect_node():
         return 'No node', 400
     for node in nodes:
         blockchain.add_node(node)
-    return {'nodes': nodes, 'added': True}, 201
+    return {'nodes': nodes, 'inserted': True}, 201
 
 @app.route('/nodes')
 def nodes():
@@ -41,15 +41,39 @@ def add_transactions():
 
 @app.route('/commit', methods=['POST'])
 def commit():
+    transactions = blockchain.transactions
+    if not transactions:
+        return 'Nothing to commit', 400
     previous_block = blockchain.get_previous_block()
     previous_proof = previous_block['proof']
     proof = blockchain.proof_of_work(previous_proof)
     previous_hash = blockchain.hash(previous_block)
-    transactions = blockchain.transactions
     commit_sucess = blockchain.commit_transaction(proof, previous_hash)
 
     #insert in database
     for transaction in transactions:
-        operate(transaction)
-    
+        response_code = operate(transaction)
+        print("response_code", response_code)
+        if response_code != 200:
+            return 'Something went wrong', response_code
     return 'Commited', 200
+
+@app.route('/select', methods=['GET'])
+def select_documents():
+    json = request.get_json()
+    commond = json.get('commond')
+    if commond is None:
+        return 'Bad commond', 400
+    selected_documents, response_code = select(commond)
+    if response_code == 400:
+        return 'Wrong where commond', response_code
+    return {'select': selected_documents}, response_code
+    
+
+@app.route('/drop_all', methods=['POST'])
+def drop_all():
+    #try to avoid this very, powerfull will delete every doc in collection
+    #add somekind of authentication
+    #add a block in blockchain with somekind of null pointer
+    drop_all_documents()
+    return 'dropped', 200

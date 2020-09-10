@@ -83,13 +83,11 @@ class Blockchain():
     
     def is_valid_transaction(self, transaction):
         if type(transaction) is dict:
-            id = transaction['_id']
-            added = transaction['added']
-            removed = transaction['removed']
-            if id != None:
-                if type(added) is dict and type(removed) is dict:
-                    if len(added) > 0:
-                        return True
+            insert = transaction['insert']
+            where = transaction['where']
+            if type(insert) is dict and type(where) is dict:
+                if len(insert) >= 0 and len(where) >= 0:
+                    return True
         return False
 
     def add_transaction(self, transaction):
