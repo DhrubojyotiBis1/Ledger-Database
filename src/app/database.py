@@ -2,9 +2,8 @@ from app import collection
 
 def operate(commond):
     response_code = 500
-    for key in commond.keys():
-        if key != 'insert' or key != 'where':
-            return 400
+    if ['insert', 'where'] != list(commond.keys()):
+        return 400
     if commond['insert'] and not commond['where']:
         #INSERTED
         document = commond['insert']

@@ -9,17 +9,19 @@ class Blockchain():
         self.chain = []
         self.nodes = set()
         self.transactions = []
+        self.orphan_blocks = []
         self.create_block(proof = 1, previous_hash = '0')
     
-    def create_block(self, proof, previous_hash):
+    def create_block(self, proof, previous_hash, timestamp=str(datetime.datetime.now()), orphan_block_transaction=None):
+        transactions = orphan_block_transaction if orphan_block_transaction else self.transactions
         block = {'index': len(self.chain) + 1,
-                 'timestamp': str(datetime.datetime.now()),
+                 'timestamp': timestamp,
                  'previous_hash': previous_hash,
                  'proof': proof,
-                 'transactions': self.transactions,
-
+                 'transactions': transactions,
         }
-        self.transactions = []     
+        if not orphan_block_transaction:
+            self.transactions = []    
         self.chain.append(block)
         return block
     
@@ -77,6 +79,7 @@ class Blockchain():
                     max_length = length
                     longest_chain = chain
         if longest_chain:
+            self.get_orphan_blocks(longest_chain)
             self.chain = longest_chain
             return True
         return False
@@ -101,9 +104,38 @@ class Blockchain():
         #Update chain(if required) to get the longest chain
         self.update_chain()
         #create block and staged transaction to blockchain
+        self.commit_orphan_block()
         self.create_block(proof, previous_hash)
     
     def add_node(self, address):
         parsed_url = urlparse(address)
         self.nodes.add(parsed_url.netloc) 
     
+
+    def get_orphan_blocks(self, longest_chain):
+        thumb_rule = 0
+        for self_block in reversed(self.chain):
+            found = False
+            for block in reversed(longest_chain):
+                if self_block == block:
+                    found = True
+                    break
+            thumb_rule += 1
+            if not found and self_block['transactions']:
+                self.orphan_blocks.append(self_block)
+                thumb_rule = 0
+            elif thumb_rule >= 6:
+               break
+    
+    def commit_orphan_block(self):
+        for block in self.orphan_blocks:
+            transactions = block['transactions']
+            timestamp = block['timestamp']
+            if not transactions:
+                pass
+            previous_block = self.get_previous_block()
+            previous_proof = previous_block['proof']
+            proof = self.proof_of_work(previous_proof)
+            previous_hash = self.hash(previous_block)
+            commit_sucess = self.create_block(proof, previous_hash, timestamp, transactions)
+        self.orphan_blocks = []

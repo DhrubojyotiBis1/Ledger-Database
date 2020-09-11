@@ -2,6 +2,7 @@ from app import app, blockchain, collection
 from app.database import operate, drop_all_documents, select
 from  flask import request
 
+#BLOCKCHAIN API
 @app.route('/connect_node', methods = ['POST'])
 def connect_node():
     json = request.get_json()
@@ -12,18 +13,31 @@ def connect_node():
         blockchain.add_node(node)
     return {'nodes': nodes, 'inserted': True}, 201
 
-@app.route('/nodes')
-def nodes():
-    serialised_nodes = []
-    for node in blockchain.nodes:
-        serialised_nodes.append(node)
-    return {'nodes': serialised_nodes}
-
 @app.route('/get_chain', methods = ['GET'])
 def get_chain():
     response = {'chain': blockchain.chain,
                 'length': len(blockchain.chain)}
     return response
+
+#USER API
+@app.route('/nodes', methods = ['GET'])
+def nodes():
+    serialised_nodes = []
+    for node in blockchain.nodes:
+        serialised_nodes.append(node)
+    return {'nodes': serialised_nodes}, 200
+
+@app.route('/chain', methods = ['GET'])
+def chain():
+    blockchain.update_chain()
+    response = {'chain': blockchain.chain,
+                'length': len(blockchain.chain)}
+    return response, 200
+
+@app.route('/transactions', methods = ['GET'])
+def transactions():
+   transactions = {'transactions': blockchain.transactions}
+   return transactions, 200
 
 @app.route('/add_transactions', methods=['POST'])
 def add_transactions():
@@ -53,7 +67,6 @@ def commit():
     #insert in database
     for transaction in transactions:
         response_code = operate(transaction)
-        print("response_code", response_code)
         if response_code != 200:
             return 'Something went wrong', response_code
     return 'Commited', 200
