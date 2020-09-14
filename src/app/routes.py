@@ -1,23 +1,49 @@
 from app import app, blockchain, collection
 from app.database import operate, drop_all_documents, select
 from  flask import request
+import requests
+import socket
 
 #BLOCKCHAIN API
 @app.route('/connect_node', methods = ['POST'])
 def connect_node():
-    json = request.get_json()
-    nodes = json.get('nodes')
-    if nodes is None:
+    node = request.args.get('node')
+    if node is None:
         return 'No node', 400
-    for node in nodes:
-        blockchain.add_node(node)
-    return {'nodes': nodes, 'inserted': True}, 201
+    blockchain.add_node(node)   
+    return node, 201
 
 @app.route('/get_chain', methods = ['GET'])
 def get_chain():
     response = {'chain': blockchain.chain,
                 'length': len(blockchain.chain)}
     return response
+
+@app.route('/connect', methods=['GET'])
+def connect():
+    response_code = 400
+    nodes = []
+    existing_node_json = request.get_json()
+    if existing_node_json:
+        existing_node = existing_node_json.get('ex_node')
+        self_node = f'{request.remote_addr}:5000'
+        if existing_node and existing_node != self_node:
+            url = f'{existing_node}/nodes'
+            response = requests.get(url)
+            existing_nodes = response.json()['nodes']
+            existing_nodes.append(existing_node)
+            for node in existing_nodes:
+                print('node', node, self_node)
+                if node != self_node:
+                    url = f'{node}/connect_node?node=http://{self_node}'
+                    response = requests.post(url)
+                    if response.status_code == 201:
+                        blockchain.add_node(node)
+                        nodes.append(node)
+            if len(blockchain.nodes):
+                response_code = 201
+    return {'nodes': nodes}, response_code
+
 
 #USER API
 @app.route('/nodes', methods = ['GET'])
