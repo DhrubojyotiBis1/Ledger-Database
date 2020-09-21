@@ -33,7 +33,6 @@ def connect():
             existing_nodes = response.json()['nodes']
             existing_nodes.append(existing_node)
             for node in existing_nodes:
-                print('node', node, self_node)
                 if node != self_node:
                     url = f'{node}/connect_node?node=http://{self_node}'
                     response = requests.post(url)
@@ -62,11 +61,14 @@ def chain():
 
 @app.route('/transactions', methods = ['GET'])
 def transactions():
-   transactions = {'transactions': blockchain.transactions}
-   return transactions, 200
+    transactions = {'transactions': blockchain.transactions}
+    return transactions, 200
 
 @app.route('/add_transactions', methods=['POST'])
 def add_transactions():
+    if not blockchain.author_name:
+        blockchain.author_name = request.remote_addr
+
     didAdd = False
     response_code = 400
     json = request.get_json()

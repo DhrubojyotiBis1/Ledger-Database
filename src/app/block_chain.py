@@ -10,15 +10,18 @@ class Blockchain():
         self.nodes = set()
         self.transactions = []
         self.orphan_blocks = []
+        self.author_name = None
         self.create_block(proof = 1, previous_hash = '0')
     
-    def create_block(self, proof, previous_hash, timestamp=str(datetime.datetime.now()), orphan_block_transaction=None):
+    def create_block(self, proof, previous_hash, timestamp=str(datetime.datetime.now()), orphan_block_transaction=None, author_name=None):
         transactions = orphan_block_transaction if orphan_block_transaction else self.transactions
+        author = author_name if author_name else self.author_name
         block = {'index': len(self.chain) + 1,
                  'timestamp': timestamp,
                  'previous_hash': previous_hash,
                  'proof': proof,
                  'transactions': transactions,
+                 'author': author
         }
         if not orphan_block_transaction:
             self.transactions = []    
@@ -131,11 +134,12 @@ class Blockchain():
         for block in self.orphan_blocks:
             transactions = block['transactions']
             timestamp = block['timestamp']
+            author = block['author']
             if not transactions:
                 pass
             previous_block = self.get_previous_block()
             previous_proof = previous_block['proof']
             proof = self.proof_of_work(previous_proof)
             previous_hash = self.hash(previous_block)
-            commit_sucess = self.create_block(proof, previous_hash, timestamp, transactions)
+            commit_sucess = self.create_block(proof, previous_hash, timestamp, transactions, author)
         self.orphan_blocks = []
