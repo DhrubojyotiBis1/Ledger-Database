@@ -84,6 +84,8 @@ class Blockchain():
         if longest_chain:
             self.get_orphan_blocks(longest_chain)
             self.chain = longest_chain
+            if self.orphan_blocks:
+                self.commit_orphan_block()
             return True
         return False
     
@@ -101,13 +103,15 @@ class Blockchain():
             self.transactions.append(transaction)
             return True
         return False
-
+    
+    def drop_transaction(self, index):
+        if self.transactions and index < len(self.transactions) and index >= 0:
+            self.transactions.pop(index)
 
     def commit_transaction(self, proof, previous_hash):
         #Update chain(if required) to get the longest chain
         self.update_chain()
         #create block and staged transaction to blockchain
-        self.commit_orphan_block()
         self.create_block(proof, previous_hash)
     
     def add_node(self, address):

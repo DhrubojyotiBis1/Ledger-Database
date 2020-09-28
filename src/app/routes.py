@@ -15,9 +15,7 @@ def connect_node():
 
 @app.route('/get_chain', methods = ['GET'])
 def get_chain():
-    response = {'chain': blockchain.chain,
-                'length': len(blockchain.chain)}
-    return response
+    return get_current_chain()
 
 @app.route('/connect', methods=['GET'])
 def connect():
@@ -40,9 +38,17 @@ def connect():
                         blockchain.add_node(node)
                         nodes.append(node)
             if len(blockchain.nodes):
+                #could update the chain here 
                 response_code = 201
     return {'nodes': nodes}, response_code
 
+
+#HELPER
+def get_transaction():
+    return {'transactions': blockchain.transactions}
+
+def get_current_chain():
+    return {'chain': blockchain.chain, 'length': len(blockchain.chain)}
 
 #USER API
 @app.route('/nodes', methods = ['GET'])
@@ -55,14 +61,11 @@ def nodes():
 @app.route('/chain', methods = ['GET'])
 def chain():
     blockchain.update_chain()
-    response = {'chain': blockchain.chain,
-                'length': len(blockchain.chain)}
-    return response, 200
+    return get_current_chain(), 200
 
 @app.route('/transactions', methods = ['GET'])
 def transactions():
-    transactions = {'transactions': blockchain.transactions}
-    return transactions, 200
+    return get_transaction(), 200
 
 @app.route('/add_transactions', methods=['POST'])
 def add_transactions():
@@ -80,6 +83,24 @@ def add_transactions():
         if didAdd:
             response_code = 201
     return {'transactions': blockchain.transactions, 'added': didAdd}, response_code
+
+@app.route('/drop_transactions', methods=['POST'])
+def drop_transactions():
+    if not blockchain.transactions:
+        return 'No transaction exist', 404
+    json = request.get_json()
+    if json:
+        drops = json.get('drops')
+        if drops:
+            drops.sort()
+            number_of_element_removed = 0
+            for drop in drops:
+                blockchain.drop_transaction(drop-number_of_element_removed)
+                number_of_element_removed += 1
+            return get_transaction()
+        return 'Bad JSON found', 400
+    return 'Required JSON not found', 400
+
 
 @app.route('/commit', methods=['POST'])
 def commit():
